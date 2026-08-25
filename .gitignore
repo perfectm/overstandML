@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ipynb_checkpoints/
+# Data — never commit trade logs
+data/
+*.csv
+*.parquet
+*.db3
+# Local artifacts
+*.log
+results/
+.optuna/
+.DS_Store

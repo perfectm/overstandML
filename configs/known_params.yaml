@@ -1,0 +1,69 @@
+# Parameters recovered from the reference system (spec §5–§6).
+# OCR-derived values marked with `verify: true` should be re-checked
+# against the original screenshots before being relied upon.
+
+hp_sets:
+  # Demo / live-adjacent evergreen set, visible in the MLCPO run panel
+  P3_v2_2:
+    model: lightgbm
+    n_estimators: 240
+    learning_rate: 0.05
+    max_depth: -1
+    num_leaves: 36
+    min_child_samples: 100
+    subsample: 0.9
+    colsample_bytree: 0.5
+    random_state: 4998
+
+  # Second visible set ("static1") — leaves/minleaf OCR uncertain
+  static1:
+    model: lightgbm
+    n_estimators: 213
+    learning_rate: 0.06
+    max_depth: 4
+    num_leaves: 380        # verify: true
+    min_child_samples: 400 # verify: true
+    subsample: 0.8
+    colsample_bytree: 0.7
+    random_state: 8849
+
+walkforward:
+  mode: daily_cpo          # Monthly (Static) | Weekly (CPO) | Daily (CPO)
+  is_months: 3
+  oos_days: 1
+  anchored: true           # reference UI default in demo; live setting unknown (spec Q5)
+  selection_mode: top_k
+  top_k: 1                 # live; MMC experiment uses 2
+  d_day_threshold: 0.65    # mechanism unknown — spec §10 question #1
+  initial_equity: 100000
+
+features:
+  day_of_open:             # captured ~9:31 ET, just before prediction
+    - opening_vix
+    - opening_spx
+    - opening_gap
+  prior_close:             # as of D-1 RTH close
+    - vix
+    - vix9d
+    - vix3m
+    - vix6m
+  excluded:
+    - vix1d                # deliberately not used by reference author (yet)
+  child_descriptors: []    # unknown — spec §10 question #2
+
+optuna:
+  max_trials: 50           # deliberate cap to limit overfitting
+  gate: >
+    Only run studies on parents that already look promising under an
+    evergreen HP set (spec §6 workflow).
+
+child_construction:
+  similar_size_constraint: >
+    Children within a parent must have comparable total PNL and comparable
+    activation frequency, or the model biases toward the larger/more active
+    child (spec §3).
+  live_parent_children: [Child_069, ML_P1_v2, Opt_Pbo_P3, Opt_Pbo_P4]
+  mmc_experiment:
+    n_children: 10
+    strategies_per_child: [3, 4]
+    top_k: 2
