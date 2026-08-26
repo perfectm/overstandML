@@ -58,6 +58,32 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+## Daily workflow
+
+```bash
+# one-time (or when re-cutting children): build + persist the live partition,
+# compute the app's caches (slow — runs full walk-forwards)
+python -m mlcpo.app --refresh data/<ts_export>.csv
+
+# each morning after 9:31 ET, with a fresh TS export:
+python -m mlcpo.live data/<ts_export>.csv      # prints pick + enable/disable
+                                               # checklist, writes data/live/<date>.json
+
+# web interface (reads caches + latest decision)
+python -m mlcpo.app                            # http://127.0.0.1:8050
+python -m mlcpo.app --host 0.0.0.0 --port 8050 # expose on LAN / reverse proxy
+```
+
+The execution hook is deliberately human-verified (Phase 5): the decision file
+lists which TS Bot Portfolios to enable/disable; toggling them in TradeSteward is
+a manual morning step until TS API access is wired to consume the same file.
+
+To serve at a domain (e.g. `closet.cottonmike.com`): run the app with
+`--host 0.0.0.0` (or `MLCPO_HOST=0.0.0.0`), point the domain's A record at this
+machine, and terminate TLS with a reverse proxy (Caddy: `closet.cottonmike.com {
+reverse_proxy 127.0.0.1:8050 }`). The Dash dev server is fine for personal use;
+put it behind auth before exposing it publicly — the dashboard shows P&L data.
+
 ## Acceptance test
 
 Before trusting this implementation: run it against the reference system's own child
@@ -76,8 +102,14 @@ adapter column map (`src/mlcpo/data/ts_to_oo.py`).
 - **Phase 3** — market features live (CBOE VIX family + yfinance SPX, leakage-safe),
   child descriptors, LGBM/XGB wrappers, walk-forward engine with honest baselines
   (BASELINE / BEST CHILD / ML table); verified on synthetic regime data
-- **Phases 1, 4, 5** — child construction (needs real data), Optuna + ensemble,
-  execution hook: not started
+- **Phase 1** — co-firing + style-coherent child construction, validated on the
+  real export (style children beat both honest baselines end-to-end)
+- **Phase 4** — Optuna studies (≤50 trials) + HP-set ensemble (mean-rank/vote)
+- **Phase 5** — LIVE daily decision + human-verified execution checklist
+  (`python -m mlcpo.live`), stable persisted partition; TS-API executor pending
+  API access
+- **Web interface** — Plotly Dash app (`python -m mlcpo.app`): overview equity/
+  drawdown, cycle picks, children, live decision
 
 Open questions for the reference author are ranked in spec §10 — #1 is the exact
 target-variable definition and the "D-Day threshold" mechanism.

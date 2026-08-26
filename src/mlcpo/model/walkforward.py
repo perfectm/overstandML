@@ -96,6 +96,31 @@ def _prediction_dates(dataset: pd.DataFrame, cfg: WalkForwardConfig, start=None,
     return [d for d in dates if lo <= d <= hi]
 
 
+def predict_day(
+    dataset: pd.DataFrame,
+    hp_set: dict,
+    cfg: WalkForwardConfig,
+    d: pd.Timestamp,
+) -> pd.Series | None:
+    """One TRAIN->PREDICT cycle: fit on the IS window strictly before d,
+    return predicted scores per child for d (None if the training window
+    is too thin). This is the exact per-cycle step of run_walkforward and
+    the LIVE module's daily prediction (spec s5/s7 LIVE)."""
+    feature_cols = [c for c in dataset.columns if c != TARGET]
+    dates = dataset.index.get_level_values("date")
+    window_start = dates.min() if cfg.anchored else d - pd.DateOffset(months=cfg.is_months)
+    train = dataset[(dates >= window_start) & (dates < d)].dropna()
+    if len(train) < cfg.min_train_rows:
+        return None
+    test = dataset.loc[[d]]
+    model = make_model(hp_set)
+    model.fit(train[feature_cols], train[TARGET])
+    return pd.Series(
+        model.predict(test[feature_cols].fillna(0.0)),
+        index=test.index.get_level_values("child"),
+    )
+
+
 def run_walkforward(
     dataset: pd.DataFrame,
     hp_set: dict,
@@ -110,9 +135,7 @@ def run_walkforward(
     stream realizes the sum of the picked children's PNL on D.
     """
     cfg = cfg or WalkForwardConfig()
-    feature_cols = [c for c in dataset.columns if c != TARGET]
     dates = dataset.index.get_level_values("date")
-    data_start = dates.min()
 
     pred_dates = _prediction_dates(dataset, cfg, start, end)
     if not pred_dates:
@@ -124,21 +147,12 @@ def run_walkforward(
 
     cycle_rows, score_rows = [], []
     for d in pred_dates:
-        window_start = data_start if cfg.anchored else d - pd.DateOffset(months=cfg.is_months)
-        train = dataset[(dates >= window_start) & (dates < d)].dropna()
-        test = dataset.loc[[d]]
-        if len(train) < cfg.min_train_rows:
+        preds = predict_day(dataset, hp_set, cfg, d)
+        if preds is None:
             continue
 
-        model = make_model(hp_set)
-        model.fit(train[feature_cols], train[TARGET])
-        preds = pd.Series(
-            model.predict(test[feature_cols].fillna(0.0)),
-            index=test.index.get_level_values("child"),
-        )
-
         picks = preds.nlargest(cfg.top_k).index.tolist()
-        realized = test[TARGET].droplevel("date")
+        realized = dataset.loc[[d]][TARGET].droplevel("date")
         cycle_rows.append(
             {
                 "date": d,
