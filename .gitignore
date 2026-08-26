@@ -8,7 +8,7 @@ build/
 .pytest_cache/
 .ipynb_checkpoints/
 # Data — never commit trade logs
-data/
+/data/
 *.csv
 *.parquet
 *.db3
