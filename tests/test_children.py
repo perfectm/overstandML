@@ -88,3 +88,55 @@ def test_real_partition_similar_size():
     rep = parent.size_report()
     # PNL balanced tightly by the greedy pack
     assert rep["total_pnl"].max() / rep["total_pnl"].min() < 1.1
+
+
+# ------------------------------------------------------------ style variant
+
+def make_style_universe():
+    """4 strategies: P1/P2 have proportional daily PNL (one style), N1/N2
+    proportional to each other and anti-correlated with the P's."""
+    from mlcpo.data.oo_contract import validate_oo
+
+    d = pd.bdate_range("2022-05-16", periods=100)
+    rng = np.random.default_rng(0)
+    base = np.sin(np.arange(100)) * 100 + 20 + rng.normal(0, 5, 100)
+    frames = []
+    for name, pnl in {
+        "P1": base, "P2": base * 1.2, "N1": 40 - base, "N2": (40 - base) * 0.8
+    }.items():
+        f = synthetic_log(name, 100, seed=1)
+        f["Date Opened"] = f["Date Closed"] = list(d)
+        f["P/L"] = pnl.round(2)
+        frames.append(f)
+    return validate_oo(pd.concat(frames, ignore_index=True))
+
+
+def test_style_groups_cluster_by_behavior():
+    oo = make_style_universe()
+    groups = [set(g) for g in ch.style_groups(oo, n_groups=2)]
+    assert {"P1", "P2"} in groups
+    assert {"N1", "N2"} in groups
+
+
+def test_build_style_children_partitions_all():
+    oo = make_style_universe()
+    parent, assignment = ch.build_style_children(oo, n_children=2, n_style_groups=2)
+    assert len(parent.children) == 2
+    assert sorted(assignment.index) == ["N1", "N2", "P1", "P2"]
+    # the two styles end up in different children
+    child_of = assignment["child"]
+    assert child_of["P1"] == child_of["P2"]
+    assert child_of["N1"] == child_of["N2"]
+    assert child_of["P1"] != child_of["N1"]
+
+
+@pytest.mark.skipif(not REAL_EXPORT.exists(), reason="real TS export not present")
+def test_real_style_partition():
+    from mlcpo.data.ts_to_oo import convert_file
+
+    parent, assignment = ch.build_style_children(convert_file(REAL_EXPORT), n_children=6)
+    assert len(parent.children) == 6
+    assert len(assignment) == 60
+    rep = parent.size_report()
+    # cap refinement keeps the largest child within ~tolerance of even share
+    assert rep["total_pnl"].max() <= rep["total_pnl"].sum() / 6 * 1.35
