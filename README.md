@@ -66,6 +66,18 @@ anchor").
 
 ## Status
 
-Scaffold + spec. No working pipeline yet. Open questions for the reference author are
-ranked in spec §10 — #1 is the exact target-variable definition and the "D-Day
-threshold" mechanism.
+Working pipeline on synthetic data; awaiting first TradeSteward export to fill the
+adapter column map (`src/mlcpo/data/ts_to_oo.py`).
+
+- **Phase 0** — OO contract + child/parent assembly done; TS→OO column map pending
+  first real export (`python -m mlcpo.data.ts_to_oo <file.csv>` prints the worksheet)
+- **Phase 2** — analytics + Parent Lab diagnostics implemented (oracle gap, rotation
+  entropy, decisive days, win-gap stats, Jaccard, correlations, `parent_report()`)
+- **Phase 3** — market features live (CBOE VIX family + yfinance SPX, leakage-safe),
+  child descriptors, LGBM/XGB wrappers, walk-forward engine with honest baselines
+  (BASELINE / BEST CHILD / ML table); verified on synthetic regime data
+- **Phases 1, 4, 5** — child construction (needs real data), Optuna + ensemble,
+  execution hook: not started
+
+Open questions for the reference author are ranked in spec §10 — #1 is the exact
+target-variable definition and the "D-Day threshold" mechanism.
