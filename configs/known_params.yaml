@@ -27,6 +27,36 @@ hp_sets:
     colsample_bytree: 0.7
     random_state: 8849
 
+
+  # Optuna study style6_topk1_v1 (50 trials, 2026-08-26, objective total_pnl
+  # over the full 979-cycle walk-forward on the 6-child style parent).
+  # CAVEAT: in-sample selection over the whole history — ensemble
+  # candidates, not truth. Neither beat evergreen P3_v2_2 on total PNL
+  # (0/50 trials did); both beat it on risk-adjusted metrics.
+  optuna_s6_pnl:            # trial 0 plateau (20/50 trials identical picks)
+    model: lightgbm
+    n_estimators: 250
+    learning_rate: 0.13321981713769523
+    max_depth: 8
+    num_leaves: 24
+    min_child_samples: 191
+    subsample: 0.8442175459606699
+    subsample_freq: 1
+    colsample_bytree: 0.4421156110631817
+    random_state: 4998
+
+  optuna_s6_mar:            # trial 13 - best MAR 15.55, half the drawdown
+    model: lightgbm
+    n_estimators: 308
+    learning_rate: 0.020762404986637867
+    max_depth: 6
+    num_leaves: 30
+    min_child_samples: 20
+    subsample: 0.6103482291446671
+    subsample_freq: 0
+    colsample_bytree: 0.30799079042609434
+    random_state: 4998
+
 walkforward:
   mode: daily_cpo          # Monthly (Static) | Weekly (CPO) | Daily (CPO)
   is_months: 3
