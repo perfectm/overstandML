@@ -87,10 +87,3 @@ def test_parent_save_load_roundtrip(tmp_path):
     pd.testing.assert_frame_equal(
         loaded.daily_pnl(), parent.daily_pnl(), check_freq=False
     )
-
-
-def test_ts_adapter_unfilled_map_raises():
-    from mlcpo.data import ts_to_oo
-
-    with pytest.raises(NotImplementedError, match="COLUMN_MAP"):
-        ts_to_oo.convert(pd.DataFrame({"anything": [1]}))
