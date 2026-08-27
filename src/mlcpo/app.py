@@ -7,7 +7,7 @@ Two entry modes:
 Serving: 127.0.0.1:8050 by default; --host 0.0.0.0 (or MLCPO_HOST/MLCPO_PORT)
 to expose on the LAN / behind a reverse proxy (e.g. closet.cottonmike.com).
 
-Charts follow the repo's dataviz conventions: light surface #fcfcfb, one
+Charts follow the repo's dataviz conventions: light pink surface #fff0f5, one
 axis per chart, 2px lines, hairline grid, fixed categorical order
 (children S1..S6 = slots 1..6; streams: ML=blue, Baseline=orange,
 Best Child=aqua, Ensemble=yellow), legends + direct end labels.
@@ -22,8 +22,8 @@ import pandas as pd
 
 CACHE = Path("data/app_cache")
 
-# validated reference palette (light mode)
-SURFACE, PAGE = "#fcfcfb", "#f9f9f7"
+# validated reference palette (light mode, pink)
+SURFACE, PAGE = "#fff0f5", "#ffe0eb"
 INK, INK2, MUTED, GRID, BASELINE_INK = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"]
 STREAM_COLORS = {
