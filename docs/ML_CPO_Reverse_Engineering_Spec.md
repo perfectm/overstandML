@@ -57,7 +57,7 @@ Train on an in-sample window of **IS months** (3 in the demo; a 2 appears in one
 
 **Baseline discipline** — the part Mauro is most emphatic about: the benchmark is chosen *with information available at comparison start only*. On Dec 31 the best-looking static child was P4; that is the honest baseline, and it went on to be the worst performer. The results table therefore reports three rows: **BASELINE** (196 trades, -$2,149 — [INFERRED] the pool/all-candidates reference), **BEST CHILD** (170 trades, -$4,098 — the as-of-start pick, P4), and **ML** (217 trades, **+$15,535**, ~21.4% figures visible), with per-row: PCR, max DD $ and %, daily Sharpe, max DD days, max 1-day loss, win-month %, avg/median/best/worst month P&L; plus a participation/normalization block (nominal units, trades/day stats, unique-UID/day stats, p95/max margin per day). OCR on this table is unreliable — verify exact values from `chrome_ombXmQPkTy.png` / `chrome_SaD5ECHgK4.png` before quoting.
 
-**Ensemble.** Live trading uses an **ensemble of HP sets**, not the single demo set; ensemble composition is reviewed/re-saved only every month or two. The app has a dedicated "ML Ensemble" module. Aggregation method (vote/mean-rank/etc.) [UNKNOWN].
+**Ensemble.** Live trading uses an **ensemble of HP sets** — described elsewhere as a "vote of 3 HP sets" — not the single demo set; ensemble composition is reviewed/re-saved only every month or two. The app has a dedicated "ML Ensemble" module. Aggregation method (vote/mean-rank/etc.) and vote mechanics [UNKNOWN] — see open question #3 for the specific sub-questions. `ensemble.py::combine_scores` implements `mean_rank` (default), `vote`, and `mean_score` as unverified candidates.
 
 ## 6. Hyperparameters
 
@@ -111,7 +111,13 @@ Sanity anchor: Emet's "step 1 is basic algorithm reproduction" — before trusti
 
 1. **Exact target variable**: what does the regressor predict (raw next-day child P&L? normalized? multi-day?), and what exactly is the "D-Day threshold 0.65" — a separate no-trade classifier, or a probability transform of the ranker?
 2. Full feature list beyond the VIX/SPX/gap set — which child descriptor features, any calendar features, any regime features?
-3. Ensemble mechanics: how many HP sets, how are their picks combined?
+3. **Ensemble mechanics** (tracked in issue #1): the reference UI's "ML Ensemble" module is described as a **"vote of 3 HP sets"**, but nothing in the shared materials pins down the mechanics. Specifically:
+   - Is it literally always 3 sets, or does "3" just describe the current review-window composition (and the count can change at the next 1-2 month review)?
+   - Is the vote computed **per trading day** (each set casts a ballot for that day's top-k pick, majority wins) or decided **once per review window** (sets are compared/ranked on trailing data and the "winning" set's picks are used live until the next review)?
+   - How are ties broken — and specifically, with 3 sets and top_k=1, a 1-1-1 split (no majority) is possible; what happens then? Fall back to a scoring rule (mean rank / mean score), to the single best-performing set, or something else?
+   - Does the aggregation match any of the candidates already implemented in `ensemble.py::combine_scores` (`mean_rank`, `vote`, `mean_score`), or is it a different rule entirely?
+
+   None of `configs/known_params.yaml`'s 4 documented HP sets (`P3_v2_2`, `static1`, `optuna_s6_pnl`, `optuna_s6_mar`) are currently flagged as "the" 3 live-ensemble sets — that mapping is also unknown.
 4. Baseline row definition: is BASELINE equal-weight all children, or something else?
 5. Anchored vs unanchored: which is live, and why?
 6. Data hygiene details: how are same-day partial fills / multi-tranche strategies rolled up to a daily child P&L row; Date Opened vs Date Closed attribution (the diagnostics use both).
